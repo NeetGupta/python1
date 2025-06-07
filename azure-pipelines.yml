@@ -1,0 +1,39 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.x'
+      addToPath: true
+
+  - script: |
+      python -m pip install --upgrade pip
+      pip install -r requirements.txt
+    displayName: 'Install Dependencies'
+
+  - script: |
+      pytest
+    displayName: 'Run Tests'
+
+  - task: Docker@2
+    inputs:
+      containerRegistry: '<your-container-registry-service-connection>'
+      repository: '<your-docker-image-name>'
+      command: 'buildAndPush'
+      Dockerfile: '**/Dockerfile'
+      tags: |
+        $(Build.BuildId)
+    displayName: 'Build and Push Docker Image'
+
+  - task: AzureWebApp@1
+    inputs:
+      azureSubscription: '<your-azure-subscription>'
+      appName: '<your-app-service-name>'
+      package: '$(System.DefaultWorkingDirectory)/<path-to-your-package>'
+    displayName: 'Deploy to Azure App Service'
